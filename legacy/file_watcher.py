@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+import database
 
 # Pfad zum Ordner mit allen Musiknoten + Playbacks
 basispfad = r"C:\Users\phil_\Documents\musikapp\Backend\stuecke"
@@ -59,6 +61,9 @@ def fill_database(pfad):
     # List mit allen Directories im Ordner
     dateien = os.listdir(pfad)
 
+    # DB Session öffnen 
+    session = database.Session()
+
     # Über Unterordner iterieren
     for ordner in dateien:
 
@@ -69,9 +74,49 @@ def fill_database(pfad):
 
         # Über Dateien im Unterordner iterieren
         for note in dateienUnterodner:
+            
+
+            # Song, Instrument und Stimme aus Dateinamen auslesen
             result = parse_atrributes(note)
-            if result is not None:
+
+            # Wenn Datei eine PDF
+            if result is None:
                 song, instrument, stimme = result
+
+                # Ist None wenn 
+                existierende_note = session.query(database.Note).filter_by(
+                    song = song,
+                    instrument = instrument,
+                    stimme = stimme
+                ).first()
+
+                if existierende_note is not None:
+
+                    # Pfad zur Note
+                    dateipfad = os.path.join(unterordnerPfad, note)
+
+                    # letztes Änderungsdatum ermitteln
+                    timestamp = os.path.getmtime(dateipfad)
+                    version = datetime.fromtimestamp(timestamp)
+
+                    # Neues Objekt in der DB erstellen
+                    neue_note = database.Note(
+                        song = song,
+                        instrument = instrument,
+                        stimme = stimme,
+                        dateipfad = dateipfad,
+                        version = version
+                    )
+
+                    # Neues Objekt zur Session hinzufügen
+                    session.add(neue_note)
+
+    # Alle neuen Objekte in der DB speichern
+    session.commit()
+
+    # DB Session abschließen
+    session.close()
+
 
 def main():
     fill_database(basispfad)

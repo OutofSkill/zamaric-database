@@ -1,3 +1,4 @@
+import os
 from sqlalchemy import create_engine, Column, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -25,7 +26,9 @@ class Playback(Base):
     version = Column(DateTime, default=datetime.now)
 
 # Datenbank erstellen
-engine = create_engine("sqlite:///musikapp.db")
+basispfad = os.path.dirname(os.path.abspath(__file__))
+db_pfad = os.path.join(basispfad, "database.db")
+engine = create_engine(f"sqlite:///{db_pfad}")
 Base.metadata.create_all(engine)
 
 Session = sessionmaker(bind=engine)
