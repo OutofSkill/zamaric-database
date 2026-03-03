@@ -28,20 +28,21 @@ def parse_atrributes(dateiname):
         try:
             song = attributes[0]
         except:
-            print("ERROR: No song name found")
+            print("[ERROR]: No song name found")
             song = None
 
         # Instrument aus dem Dateinamen filtern
         try:
             instrument = attributes[1]
         except:
-            print("ERROR: No instrument found")
+            print("[ERROR]: No instrument found")
             instrument = None
 
         # Stimme aus Dateinamen filtern 
         try : 
             stimme = attributes[2]
         except : 
+            print("[ERROR]: No part found")
             stimme = None
 
         return song, instrument, stimme
