@@ -104,7 +104,7 @@ def fill_database(pfad):
             result = parse_atrributes(note)
 
             # Wenn Datei eine PDF
-            if result is None:
+            if result is not None:
                 song, instrument, stimme = result
 
                 # Pfad zur Note
