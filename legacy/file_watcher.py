@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 import database
+import time
 
 # Pfad zum Ordner mit allen Musiknoten + Playbacks
 basispfad = r"C:\Users\phil_\Documents\musikapp\Backend\stuecke"
@@ -51,6 +52,29 @@ def parse_atrributes(dateiname):
 
         return song, instrument, stimme
 
+
+"""
+Überprüft die Dateipfade aus der Database. Wenn Datei auf Pfad nicht mehr existiert
+wird der Eintrag aus der DB gelöscht.  
+
+Input:  None
+Output: None
+"""
+def clean_database():
+    # DB Session öffnen
+    session = database.Session()
+
+    # Alle Noten aus der DB auflisten
+    alle_noten = session.query(database.Note).all()
+
+    # Über DB einträge iterieren
+    for note in alle_noten:
+        if not os.path.exists(note.dateipfad):
+            session.delete(note)
+    
+    session.commit()
+    session.close()
+
 """
 Extrahiert die gefragten Attribute und füllt die Datenbank mit diesen. 
 
@@ -83,21 +107,22 @@ def fill_database(pfad):
             if result is None:
                 song, instrument, stimme = result
 
-                # Ist None wenn 
+                # Pfad zur Note
+                dateipfad = os.path.join(unterordnerPfad, note)
+
+                # letztes Änderungsdatum ermitteln
+                timestamp = os.path.getmtime(dateipfad)
+                version = datetime.fromtimestamp(timestamp)
+
+                # Ist None wenn die Note noch nicht ind der DB existiert
                 existierende_note = session.query(database.Note).filter_by(
                     song = song,
                     instrument = instrument,
                     stimme = stimme
                 ).first()
 
-                if existierende_note is not None:
-
-                    # Pfad zur Note
-                    dateipfad = os.path.join(unterordnerPfad, note)
-
-                    # letztes Änderungsdatum ermitteln
-                    timestamp = os.path.getmtime(dateipfad)
-                    version = datetime.fromtimestamp(timestamp)
+                # Falls die Note noch nicht existiert neue Note erstellen
+                if existierende_note is None:
 
                     # Neues Objekt in der DB erstellen
                     neue_note = database.Note(
@@ -111,15 +136,22 @@ def fill_database(pfad):
                     # Neues Objekt zur Session hinzufügen
                     session.add(neue_note)
 
+                # Sonst 
+                else :
+                    if version > existierende_note.version:
+                        existierende_note = version
+
     # Alle neuen Objekte in der DB speichern
     session.commit()
 
     # DB Session abschließen
     session.close()
 
-
 def main():
-    fill_database(basispfad)
+    while True:
+        clean_database()
+        fill_database(basispfad)
+        time.sleep(10)
 
 if __name__ == "__main__":
     main()
