@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import database
 import time
 
@@ -24,41 +24,34 @@ def parse_atrributes(dateiname):
         # String zwischen "_" aufteilen
         attributes = notenname.split("_")
 
-        # Name der Note au dem Dateinamen filtern
+        # Name der Note aus dem Dateinamen filtern
         try:
             song = attributes[0]
         except:
-            print("Fehler : Kein Name gefunden")
+            print("ERROR: No song name found")
             song = None
-        
-        print(song)
 
         # Instrument aus dem Dateinamen filtern
         try:
             instrument = attributes[1]
         except:
-            print("Fehler : kein Instrument gefunden")
+            print("ERROR: No instrument found")
             instrument = None
-        
-        print(instrument)
 
         # Stimme aus Dateinamen filtern 
         try : 
             stimme = attributes[2]
         except : 
-            print("Fehler : Keine Stimme gefunden")
             stimme = None
-        print(stimme)
 
         return song, instrument, stimme
-
 
 """
 Überprüft die Dateipfade aus der Database. Wenn Datei auf Pfad nicht mehr existiert
 wird der Eintrag aus der DB gelöscht.  
 
 Input:  None
-Output: None
+Output: Anzahl gelöschter Einträge (int)
 """
 def clean_database():
     # DB Session öffnen
@@ -67,13 +60,20 @@ def clean_database():
     # Alle Noten aus der DB auflisten
     alle_noten = session.query(database.Note).all()
 
+    # Zähler für gelöschte Einträge
+    geloescht = 0
+
     # Über DB einträge iterieren
     for note in alle_noten:
         if not os.path.exists(note.dateipfad):
+            print(f"[REMOVED] {note.song} - {note.instrument} {note.stimme or ''}")
             session.delete(note)
+            geloescht += 1
     
     session.commit()
     session.close()
+
+    return geloescht
 
 """
 Extrahiert die gefragten Attribute und füllt die Datenbank mit diesen. 
@@ -88,17 +88,18 @@ def fill_database(pfad):
     # DB Session öffnen 
     session = database.Session()
 
+    # Zähler für Änderungen
+    aenderungen = 0
+
     # Über Unterordner iterieren
     for ordner in dateien:
 
         # Unterordner "öffnen" + Liste mit Dateien im Unterordner erstellen
         unterordnerPfad = os.path.join(basispfad, ordner)
         dateienUnterodner = os.listdir(unterordnerPfad)
-        print(dateienUnterodner)
 
         # Über Dateien im Unterordner iterieren
         for note in dateienUnterodner:
-            
 
             # Song, Instrument und Stimme aus Dateinamen auslesen
             result = parse_atrributes(note)
@@ -114,7 +115,7 @@ def fill_database(pfad):
                 timestamp = os.path.getmtime(dateipfad)
                 version = datetime.fromtimestamp(timestamp)
 
-                # Ist None wenn die Note noch nicht ind der DB existiert
+                # Ist None wenn die Note noch nicht in der DB existiert
                 existierende_note = session.query(database.Note).filter_by(
                     song = song,
                     instrument = instrument,
@@ -133,25 +134,34 @@ def fill_database(pfad):
                         version = version
                     )
 
-                    # Neues Objekt zur Session hinzufügen
+                    print(f"[ADDED] {song} - {instrument} {stimme or ''}")
                     session.add(neue_note)
+                    aenderungen += 1
 
-                # Sonst 
-                else :
+                # Sonst version vergleichen und updaten falls neuer
+                else:
                     if version > existierende_note.version:
-                        existierende_note = version
+                        print(f"[UPDATED] {song} - {instrument} {stimme or ''}")
+                        existierende_note.version = version
+                        aenderungen += 1
 
     # Alle neuen Objekte in der DB speichern
     session.commit()
-
-    # DB Session abschließen
     session.close()
+
+    return aenderungen
 
 def main():
     while True:
-        clean_database()
-        fill_database(basispfad)
-        time.sleep(10)
+        geloescht = clean_database()
+        aenderungen = fill_database(basispfad)
+
+        if geloescht + aenderungen == 0:
+            print("[INFO] No changes found")
+
+        naechster_durchlauf = datetime.now() + timedelta(hours=12)
+        print(f"[DONE] Cycle completed at {datetime.now().strftime('%H:%M:%S')} - Next cycle at {naechster_durchlauf.strftime('%H:%M:%S')}")
+        time.sleep(43200)
 
 if __name__ == "__main__":
     main()
