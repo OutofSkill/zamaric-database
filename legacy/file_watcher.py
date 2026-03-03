@@ -2,6 +2,7 @@ import os
 from datetime import datetime, timedelta
 import database
 import time
+import schedule
 
 # Pfad zum Ordner mit allen Musiknoten + Playbacks
 basispfad = r"C:\Users\phil_\Documents\musikapp\Backend\stuecke"
@@ -152,17 +153,26 @@ def fill_database(pfad):
 
     return aenderungen
 
+def job():
+    geloescht = clean_database()
+    aenderungen = fill_database(basispfad)
+
+    if geloescht + aenderungen == 0:
+        print("[INFO] No changes found")
+
+    naechster_durchlauf = datetime.now().replace(hour=3, minute=0, second=0, microsecond=0)
+    if naechster_durchlauf < datetime.now():
+        naechster_durchlauf += timedelta(days=1)
+
+    print(f"[DONE] Cycle completed at {datetime.now().strftime('%H:%M:%S')} - Next cycle at {naechster_durchlauf.strftime('%d.%m.%Y %H:%M')}")
+
 def main():
+    # Jeden Tag um 03:00 Uhr
+    schedule.every().day.at("18:53").do(job)
+
     while True:
-        geloescht = clean_database()
-        aenderungen = fill_database(basispfad)
-
-        if geloescht + aenderungen == 0:
-            print("[INFO] No changes found")
-
-        naechster_durchlauf = datetime.now() + timedelta(hours=12)
-        print(f"[DONE] Cycle completed at {datetime.now().strftime('%H:%M:%S')} - Next cycle at {naechster_durchlauf.strftime('%H:%M:%S')}")
-        time.sleep(43200)
+        schedule.run_pending()
+        time.sleep(30)
 
 if __name__ == "__main__":
     main()
