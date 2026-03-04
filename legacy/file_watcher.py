@@ -3,9 +3,16 @@ from datetime import datetime, timedelta
 import database
 import time
 import schedule
+import unicodedata
+from sqlalchemy import func
+import threading
+
 
 # Pfad zum Ordner mit allen Musiknoten + Playbacks
 basispfad = r"C:\Users\phil_\Documents\musikapp\Backend\stuecke"
+
+# Uhrzeit an der die DB aktualisiert wird
+aktualisierungszeit = "20:52"
 
 """
 Parst einen Dateinamen und extrahiert Song, Instrument und Stimme.
@@ -19,8 +26,11 @@ def parse_atrributes(dateiname):
     # Nach PDF-Dateien filtern
     if dateiname.endswith(".pdf"):
         
-        # Zum sauberen Arbeiten .pdf vom Ende entfernen
+        # Dateinamen korrekt formatieren 
         notenname = dateiname.removesuffix(".pdf")
+        notenname = notenname.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue")
+        notenname = notenname.replace("Ä", "Ae").replace("Ö", "Oe").replace("Ü", "Ue")
+        notenname = unicodedata.normalize('NFD', notenname).encode('ascii', 'ignore').decode('utf-8')
 
         # String zwischen "_" aufteilen
         attributes = notenname.split("_")
@@ -118,10 +128,10 @@ def fill_database(pfad):
                 version = datetime.fromtimestamp(timestamp)
 
                 # Ist None wenn die Note noch nicht in der DB existiert
-                existierende_note = session.query(database.Note).filter_by(
-                    song = song,
-                    instrument = instrument,
-                    stimme = stimme
+                existierende_note = session.query(database.Note).filter(
+                    func.lower(database.Note.song) == song.lower(),
+                    func.lower(database.Note.instrument) == instrument.lower(),
+                    database.Note.stimme == stimme
                 ).first()
 
                 # Falls die Note noch nicht existiert neue Note erstellen
@@ -164,11 +174,36 @@ def job():
     if naechster_durchlauf < datetime.now():
         naechster_durchlauf += timedelta(days=1)
 
-    print(f"[DONE] Cycle completed at {datetime.now().strftime('%H:%M:%S')} - Next cycle at {naechster_durchlauf.strftime('%d.%m.%Y %H:%M')}")
+    print(f"[DONE] Cycle completed at {datetime.now().strftime('%H:%M:%S')} - Next automated cycle at {naechster_durchlauf.strftime('%d.%m.%Y %H:%M')}")
+
+def listen_for_commands():
+    while True:
+        command = input()
+        if command == "cycle":
+            job()
+        elif command == "fill":
+            fill_database(basispfad)
+            print("[DONE] Database filled")
+        elif command == "clean":
+            clean_database()
+            print("[DONE] Database cleaned")
+        elif command == "clear":
+            session = database.Session()
+            alle_noten = session.query(database.Note).all()
+            for note in alle_noten:
+                print(f"[REMOVED] {note.song} - {note.instrument} {note.stimme or ''}")
+            session.query(database.Note).delete()
+            session.commit()
+            session.close()
+            print("[DONE] Database cleared")
 
 def main():
     # Jeden Tag um 03:00 Uhr
-    schedule.every().day.at("18:53").do(job)
+    schedule.every().day.at(aktualisierungszeit).do(job)
+
+    # Terminal-Listener in separatem Thread starten
+    thread = threading.Thread(target=listen_for_commands, daemon=True)
+    thread.start()
 
     while True:
         schedule.run_pending()
