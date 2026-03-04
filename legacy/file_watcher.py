@@ -105,6 +105,10 @@ def fill_database(pfad):
 
     # Über Unterordner iterieren
     for ordner in dateien:
+        
+        # Playbacks Ordner überspringen
+        if ordner == "playbacks":
+            continue
 
         # Unterordner "öffnen" + Liste mit Dateien im Unterordner erstellen
         unterordnerPfad = os.path.join(basispfad, ordner)
