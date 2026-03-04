@@ -7,12 +7,11 @@ import unicodedata
 from sqlalchemy import func
 import threading
 
-
 # Pfad zum Ordner mit allen Musiknoten + Playbacks
 basispfad = r"C:\Users\phil_\Documents\musikapp\Backend\stuecke"
 
 # Uhrzeit an der die DB aktualisiert wird
-aktualisierungszeit = "20:52"
+aktualisierungszeit = "03:00"
 
 """
 Parst einen Dateinamen und extrahiert Song, Instrument und Stimme.
@@ -116,6 +115,10 @@ def fill_database(pfad):
 
         # Über Dateien im Unterordner iterieren
         for note in dateienUnterodner:
+
+            # Playbacks Ordner überspringen
+            if note == "playbacks":
+                continue
 
             # Song, Instrument und Stimme aus Dateinamen auslesen
             result = parse_atrributes(note)
