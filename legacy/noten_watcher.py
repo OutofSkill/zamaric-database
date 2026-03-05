@@ -52,6 +52,10 @@ def parse_atrributes(dateiname):
             log("[ERROR]:", f"No instrument found in {attributes[0]}")
             instrument = None
 
+        # TODO : Attribut Tonart zum Instrument hinzufügen
+
+        # TODO : Stimmen möglichkeiten zu Schwer, Normal, Leicht und ohne Stimme
+        # TODO : Umbenennen in Level
         # Stimme aus Dateinamen filtern 
         try:
             stimme = attributes[2]

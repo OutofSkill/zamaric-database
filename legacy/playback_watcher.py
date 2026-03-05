@@ -45,6 +45,7 @@ def parse_atrributes(dateiname):
             log("[ERROR]:", "No song name found")
             song = None
 
+        # TODO : Geschwindigkeit in Typ umbenennen
         # Geschwindigkeit aus dem Dateinamen filtern
         try:
             geschwindigkeit = attributes[1]
