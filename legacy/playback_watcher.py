@@ -13,23 +13,27 @@ basispfad = r"C:\Users\phil_\Documents\musikapp\Backend\stuecke"
 # Uhrzeit an der die DB aktualisiert wird
 aktualisierungszeit = "03:00"
 
+def log(tag, message):
+    timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+    print(f"[{timestamp}] {tag} {message}")
+
 """
 Parst einen Dateinamen und extrahiert Song und Geschwindigkeit.
 
 Input:  dateiname (str) - z.B. "apt_normal.mp3"
 Output: attributes = [Song, Geschwindigkeit]
-        Bei fehlendem Wert wird None zurückgegeben
+        Bei fehlendem Wert wird None zurueckgegeben
 """
 def parse_atrributes(dateiname):
 
-    # Nach PDF-Dateien filtern
+    # Nach MP3-Dateien filtern
     if dateiname.endswith(".mp3"):
         
         # Dateinamen korrekt formatieren 
         playbackname = dateiname.removesuffix(".mp3")
         playbackname = playbackname.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue")
         playbackname = playbackname.replace("Ä", "Ae").replace("Ö", "Oe").replace("Ü", "Ue")
-        playbackname = unicodedata.normalize('NFD', playbackname).encode('ascii', 'ignore').decode('utf-8')
+        playbackname = unicodedata.normalize("NFD", playbackname).encode("ascii", "ignore").decode("utf-8")
 
         # String zwischen "_" aufteilen
         attributes = playbackname.split("_")
@@ -38,39 +42,43 @@ def parse_atrributes(dateiname):
         try:
             song = attributes[0]
         except:
-            print("[ERROR]: No song name found")
+            log("[ERROR]:", "No song name found")
             song = None
 
         # Geschwindigkeit aus dem Dateinamen filtern
         try:
             geschwindigkeit = attributes[1]
         except:
-            print("[ERROR]: No Speed found")
+            log("[ERROR]:", f"No speed found in {attributes[0]}")
             geschwindigkeit = None
+
+        if song is None or geschwindigkeit is None:
+            return None
 
         return song, geschwindigkeit
 
 """
-Überprüft die Dateipfade aus der Database. Wenn Datei auf Pfad nicht mehr existiert wird der Eintrag aus der DB gelöscht.  
+Ueberprueft die Dateipfade aus der Database. Wenn Datei auf Pfad nicht mehr existiert
+wird der Eintrag aus der DB geloescht.
 
 Input:  None
-Output: Anzahl gelöschter Einträge (int)
+Output: Anzahl geloeschter Eintraege (int)
 """
 def clean_database():
-    # DB Session öffnen
+    # DB Session oeffnen
     session = database.Session()
 
     # Alle Playbacks aus der DB auflisten
     alle_playbacks = session.query(database.Playback).all()
 
-    # Zähler für gelöschte Einträge
+    # Zaehler fuer geloeschte Eintraege
     geloescht = 0
 
-    # Über DB einträge iterieren
-    for playbacks in alle_playbacks:
-        if not os.path.exists(playbacks.dateipfad):
-            print(f"[REMOVED] {playbacks.song} - {playbacks.geschwindigkeit}")
-            session.delete(playbacks)
+    # Ueber DB Eintraege iterieren
+    for playback in alle_playbacks:
+        if not os.path.exists(playback.dateipfad):
+            log("[REMOVED]", f"{playback.song} - {playback.geschwindigkeit}")
+            session.delete(playback)
             geloescht += 1
     
     session.commit()
@@ -79,40 +87,41 @@ def clean_database():
     return geloescht
 
 """
-Extrahiert die gefragten Attribute und füllt die Datenbank mit diesen. 
+Extrahiert die gefragten Attribute und fuellt die Datenbank mit diesen.
 
-Input:  pfad (str) - Übergeordneter Pfad der Songs
-Output: None
+Input:  pfad (str) - Uebergeordneter Pfad der Songs
+Output: Anzahl der Aenderungen (int)
 """
 def fill_database(pfad):
-    # List mit allen Directories im Ordner
+    # Liste mit allen Directories im Ordner
     dateien = os.listdir(pfad)
 
-    # DB Session öffnen 
+    # DB Session oeffnen 
     session = database.Session()
 
-    # Zähler für Änderungen
+    # Zaehler fuer Aenderungen
     aenderungen = 0
 
-    # Über Unterordner iterieren
+    # Ueber Unterordner iterieren
     for ordner in dateien:
 
-        # Unterordner "öffnen" + Liste mit Dateien im Unterordner erstellen
+        # Unterordner oeffnen + Liste mit Dateien im Unterordner erstellen
         unterordnerPfad = os.path.join(basispfad, ordner)
+        if not os.path.isdir(unterordnerPfad):
+            continue
         dateienUnterodner = os.listdir(unterordnerPfad)
 
-        # Über Dateien im Unterordner iterieren
+        # Ueber Dateien im Unterordner iterieren
         for note in dateienUnterodner:
             
             # Wir suchen den Playbacks Ordner
-            if note == "playbacks" :
+            if note.lower() == "playbacks":
 
-                # Playbacks-Ordner "öffnen" + Liste mit Dateien im Unterordner erstellen
+                # Playbacks-Ordner oeffnen + Liste mit Dateien erstellen
                 playbacksPath = os.path.join(unterordnerPfad, note)
                 playbacks = os.listdir(playbacksPath)
-                
 
-                for playback in playbacks :
+                for playback in playbacks:
             
                     # Song und Geschwindigkeit aus Dateinamen auslesen
                     result = parse_atrributes(playback)
@@ -124,7 +133,7 @@ def fill_database(pfad):
                         # Pfad zum Playback
                         dateipfad = os.path.join(playbacksPath, playback)
 
-                        # letztes Änderungsdatum ermitteln
+                        # Letztes Aenderungsdatum ermitteln
                         timestamp = os.path.getmtime(dateipfad)
                         version = datetime.fromtimestamp(timestamp)
 
@@ -145,14 +154,14 @@ def fill_database(pfad):
                                 version = version
                             )
 
-                            print(f"[ADDED] {song} - {geschwindigkeit}")
+                            log("[ADDED]", f"{song} - {geschwindigkeit}")
                             session.add(neue_playback)
                             aenderungen += 1
 
                         # Sonst version vergleichen und updaten falls neuer
                         else:
                             if version > existierende_playback.version:
-                                print(f"[UPDATED] {song} - {geschwindigkeit}")
+                                log("[UPDATED]", f"{song} - {geschwindigkeit}")
                                 existierende_playback.version = version
                                 aenderungen += 1
 
@@ -167,34 +176,40 @@ def job():
     aenderungen = fill_database(basispfad)
 
     if geloescht + aenderungen == 0:
-        print("[INFO] No changes found")
+        log("[INFO]", "No changes found")
 
     naechster_durchlauf = datetime.now().replace(hour=3, minute=0, second=0, microsecond=0)
     if naechster_durchlauf < datetime.now():
         naechster_durchlauf += timedelta(days=1)
 
-    print(f"[DONE] Cycle completed at {datetime.now().strftime('%H:%M:%S')} - Next automated cycle at {naechster_durchlauf.strftime('%d.%m.%Y %H:%M')}")
+    log("[DONE]", f"Cycle completed - Next automated cycle at {naechster_durchlauf.strftime("%d.%m.%Y %H:%M")}")
+
+stop_event = threading.Event()
 
 def listen_for_commands():
     while True:
-        command = input()
+        command = input("playback_watcher > ")
         if command == "cycle":
             job()
         elif command == "fill":
             fill_database(basispfad)
-            print("[DONE] Database filled")
+            log("[DONE]", "Database filled")
         elif command == "clean":
             clean_database()
-            print("[DONE] Database cleaned")
+            log("[DONE]", "Database cleaned")
         elif command == "clear":
             session = database.Session()
             alle_playbacks = session.query(database.Playback).all()
             for playback in alle_playbacks:
-                print(f"[REMOVED] {playback.song} - {playback.geschwindigkeit}")
+                log("[REMOVED]", f"{playback.song} - {playback.geschwindigkeit}")
             session.query(database.Playback).delete()
             session.commit()
             session.close()
-            print("[DONE] Database cleared")
+            log("[DONE]", "Database cleared")
+        elif command == "quit":
+            log("[INFO]", "Shutting down...")
+            stop_event.set()
+            return
 
 def main():
     # Jeden Tag um 03:00 Uhr
@@ -204,9 +219,9 @@ def main():
     thread = threading.Thread(target=listen_for_commands, daemon=True)
     thread.start()
 
-    while True:
+    while not stop_event.is_set():
         schedule.run_pending()
-        time.sleep(30)
+        time.sleep(1)
 
 if __name__ == "__main__":
     main()

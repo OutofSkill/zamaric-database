@@ -13,12 +13,16 @@ basispfad = r"C:\Users\phil_\Documents\musikapp\Backend\stuecke"
 # Uhrzeit an der die DB aktualisiert wird
 aktualisierungszeit = "03:00"
 
+def log(tag, message):
+    timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+    print(f"[{timestamp}] {tag} {message}")
+
 """
 Parst einen Dateinamen und extrahiert Song, Instrument und Stimme.
 
 Input:  dateiname (str) - z.B. "apt_trompete_1.pdf"
 Output: attributes = [Song, Instrument, Stimme]
-        Bei fehlendem Wert wird None zurückgegeben
+        Bei fehlendem Wert wird None zurueckgegeben
 """
 def parse_atrributes(dateiname):
 
@@ -29,7 +33,7 @@ def parse_atrributes(dateiname):
         notenname = dateiname.removesuffix(".pdf")
         notenname = notenname.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue")
         notenname = notenname.replace("Ä", "Ae").replace("Ö", "Oe").replace("Ü", "Ue")
-        notenname = unicodedata.normalize('NFD', notenname).encode('ascii', 'ignore').decode('utf-8')
+        notenname = unicodedata.normalize("NFD", notenname).encode("ascii", "ignore").decode("utf-8")
 
         # String zwischen "_" aufteilen
         attributes = notenname.split("_")
@@ -38,46 +42,49 @@ def parse_atrributes(dateiname):
         try:
             song = attributes[0]
         except:
-            print("[ERROR]: No song name found")
+            log("[ERROR]:", "No song name found")
             song = None
 
         # Instrument aus dem Dateinamen filtern
         try:
             instrument = attributes[1]
         except:
-            print("[ERROR]: No instrument found")
+            log("[ERROR]:", f"No instrument found in {attributes[0]}")
             instrument = None
 
         # Stimme aus Dateinamen filtern 
-        try : 
+        try:
             stimme = attributes[2]
-        except : 
-            print("[ERROR]: No part found")
+        except:
+            log("[WARNING]:", f"No part found in {attributes[0]}")
             stimme = None
+
+        if song is None or instrument is None:
+            return None
 
         return song, instrument, stimme
 
 """
-Überprüft die Dateipfade aus der Database. Wenn Datei auf Pfad nicht mehr existiert
-wird der Eintrag aus der DB gelöscht.  
+Ueberprueft die Dateipfade aus der Database. Wenn Datei auf Pfad nicht mehr existiert
+wird der Eintrag aus der DB geloescht.
 
 Input:  None
-Output: Anzahl gelöschter Einträge (int)
+Output: Anzahl geloeschter Eintraege (int)
 """
 def clean_database():
-    # DB Session öffnen
+    # DB Session oeffnen
     session = database.Session()
 
     # Alle Noten aus der DB auflisten
     alle_noten = session.query(database.Note).all()
 
-    # Zähler für gelöschte Einträge
+    # Zaehler fuer geloeschte Eintraege
     geloescht = 0
 
-    # Über DB einträge iterieren
+    # Ueber DB Eintraege iterieren
     for note in alle_noten:
         if not os.path.exists(note.dateipfad):
-            print(f"[REMOVED] {note.song} - {note.instrument} {note.stimme or ''}")
+            log("[REMOVED]", f"{note.song} - {note.instrument} {note.stimme or ""}")
             session.delete(note)
             geloescht += 1
     
@@ -87,37 +94,39 @@ def clean_database():
     return geloescht
 
 """
-Extrahiert die gefragten Attribute und füllt die Datenbank mit diesen. 
+Extrahiert die gefragten Attribute und fuellt die Datenbank mit diesen.
 
-Input:  pfad (str) - Übergeordneter Pfad der Songs
-Output: None
+Input:  pfad (str) - Uebergeordneter Pfad der Songs
+Output: Anzahl der Aenderungen (int)
 """
 def fill_database(pfad):
-    # List mit allen Directories im Ordner
+    # Liste mit allen Directories im Ordner
     dateien = os.listdir(pfad)
 
-    # DB Session öffnen 
+    # DB Session oeffnen 
     session = database.Session()
 
-    # Zähler für Änderungen
+    # Zaehler fuer Aenderungen
     aenderungen = 0
 
-    # Über Unterordner iterieren
+    # Ueber Unterordner iterieren
     for ordner in dateien:
         
-        # Playbacks Ordner überspringen
-        if ordner == "playbacks":
+        # Playbacks Ordner ueberspringen
+        if ordner.lower() == "playbacks":
             continue
 
-        # Unterordner "öffnen" + Liste mit Dateien im Unterordner erstellen
+        # Unterordner oeffnen + Liste mit Dateien im Unterordner erstellen
         unterordnerPfad = os.path.join(basispfad, ordner)
+        if not os.path.isdir(unterordnerPfad):
+            continue
         dateienUnterodner = os.listdir(unterordnerPfad)
 
-        # Über Dateien im Unterordner iterieren
+        # Ueber Dateien im Unterordner iterieren
         for note in dateienUnterodner:
 
-            # Playbacks Ordner überspringen
-            if note == "playbacks":
+            # Playbacks Ordner ueberspringen
+            if note.lower() == "playbacks":
                 continue
 
             # Song, Instrument und Stimme aus Dateinamen auslesen
@@ -130,7 +139,7 @@ def fill_database(pfad):
                 # Pfad zur Note
                 dateipfad = os.path.join(unterordnerPfad, note)
 
-                # letztes Änderungsdatum ermitteln
+                # Letztes Aenderungsdatum ermitteln
                 timestamp = os.path.getmtime(dateipfad)
                 version = datetime.fromtimestamp(timestamp)
 
@@ -153,14 +162,14 @@ def fill_database(pfad):
                         version = version
                     )
 
-                    print(f"[ADDED] {song} - {instrument} {stimme or ''}")
+                    log("[ADDED]", f"{song} - {instrument} {stimme or ""}")
                     session.add(neue_note)
                     aenderungen += 1
 
                 # Sonst version vergleichen und updaten falls neuer
                 else:
                     if version > existierende_note.version:
-                        print(f"[UPDATED] {song} - {instrument} {stimme or ''}")
+                        log("[UPDATED]", f"{song} - {instrument} {stimme or ""}")
                         existierende_note.version = version
                         aenderungen += 1
 
@@ -175,34 +184,40 @@ def job():
     aenderungen = fill_database(basispfad)
 
     if geloescht + aenderungen == 0:
-        print("[INFO] No changes found")
+        log("[INFO]", "No changes found")
 
     naechster_durchlauf = datetime.now().replace(hour=3, minute=0, second=0, microsecond=0)
     if naechster_durchlauf < datetime.now():
         naechster_durchlauf += timedelta(days=1)
 
-    print(f"[DONE] Cycle completed at {datetime.now().strftime('%H:%M:%S')} - Next automated cycle at {naechster_durchlauf.strftime('%d.%m.%Y %H:%M')}")
+    log("[DONE]", f"Cycle completed - Next automated cycle at {naechster_durchlauf.strftime("%d.%m.%Y %H:%M")}")
+
+stop_event = threading.Event()
 
 def listen_for_commands():
     while True:
-        command = input()
+        command = input("noten_watcher > ")
         if command == "cycle":
             job()
         elif command == "fill":
             fill_database(basispfad)
-            print("[DONE] Database filled")
+            log("[DONE]", "Database filled")
         elif command == "clean":
             clean_database()
-            print("[DONE] Database cleaned")
+            log("[DONE]", "Database cleaned")
         elif command == "clear":
             session = database.Session()
             alle_noten = session.query(database.Note).all()
             for note in alle_noten:
-                print(f"[REMOVED] {note.song} - {note.instrument} {note.stimme or ''}")
+                log("[REMOVED]", f"{note.song} - {note.instrument} {note.stimme or ""}")
             session.query(database.Note).delete()
             session.commit()
             session.close()
-            print("[DONE] Database cleared")
+            log("[DONE]", "Database cleared")
+        elif command == "quit":
+            log("[INFO]", "Shutting down...")
+            stop_event.set()
+            return
 
 def main():
     # Jeden Tag um 03:00 Uhr
@@ -212,9 +227,9 @@ def main():
     thread = threading.Thread(target=listen_for_commands, daemon=True)
     thread.start()
 
-    while True:
+    while not stop_event.is_set():
         schedule.run_pending()
-        time.sleep(30)
+        time.sleep(1)
 
 if __name__ == "__main__":
     main()
