@@ -52,7 +52,12 @@ def parse_atrributes(dateiname):
             log("[ERROR]:", f"No instrument found in {attributes[0]}")
             instrument = None
 
-        # TODO : Attribut Tonart zum Instrument hinzufügen
+        # Transposition aus dem Dateinamen filtern
+        try:
+            transposition = attributes[2]
+        except:
+            log("[ERROR]:", f"No transposition found in {attributes[0]}")
+            instrument = None
 
         # TODO : Stimmen möglichkeiten zu Schwer, Normal, Leicht und ohne Stimme
         # TODO : Umbenennen in Level
@@ -138,7 +143,7 @@ def fill_database(pfad):
 
             # Wenn Datei eine PDF
             if result is not None:
-                song, instrument, stimme = result
+                song, instrument, transposition, stimme = result
 
                 # Pfad zur Note
                 dateipfad = os.path.join(unterordnerPfad, note)
@@ -151,6 +156,7 @@ def fill_database(pfad):
                 existierende_note = session.query(database.Note).filter(
                     func.lower(database.Note.song) == song.lower(),
                     func.lower(database.Note.instrument) == instrument.lower(),
+                    func.lower(database.Note.transposition) == transposition.lower(),
                     database.Note.stimme == stimme
                 ).first()
 
@@ -161,19 +167,20 @@ def fill_database(pfad):
                     neue_note = database.Note(
                         song = song,
                         instrument = instrument,
+                        transposition = transposition,
                         stimme = stimme,
                         dateipfad = dateipfad,
                         version = version
                     )
 
-                    log("[ADDED]", f"{song} - {instrument} {stimme or ""}")
+                    log("[ADDED]", f"{song} - {instrument} in {transposition} {stimme or ""}")
                     session.add(neue_note)
                     aenderungen += 1
 
                 # Sonst version vergleichen und updaten falls neuer
                 else:
                     if version > existierende_note.version:
-                        log("[UPDATED]", f"{song} - {instrument} {stimme or ""}")
+                        log("[UPDATED]", f"{song} - {instrument} in {transposition} {stimme or ""}")
                         existierende_note.version = version
                         aenderungen += 1
 

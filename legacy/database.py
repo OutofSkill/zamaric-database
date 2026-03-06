@@ -12,6 +12,7 @@ class Note(Base):
     id = Column(Integer, primary_key=True)
     song = Column(String)
     instrument = Column(String)
+    transposition = Column(String)
     stimme = Column(String, nullable=True)  # Nicht alle haben eine Stimme
     dateipfad = Column(String)
     version = Column(DateTime, default=datetime.now)
