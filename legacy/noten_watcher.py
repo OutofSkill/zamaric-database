@@ -18,10 +18,10 @@ def log(tag, message):
     print(f"[{timestamp}] {tag} {message}")
 
 """
-Parst einen Dateinamen und extrahiert Song, Instrument und Stimme.
+Parst einen Dateinamen und extrahiert Song, Instrument, Transposition und Level.
 
 Input:  dateiname (str) - z.B. "apt_trompete_1.pdf"
-Output: attributes = [Song, Instrument, Stimme]
+Output: attributes = [Song, Instrument, Transposition, Level]
         Bei fehlendem Wert wird None zurueckgegeben
 """
 def parse_atrributes(dateiname):
@@ -57,21 +57,19 @@ def parse_atrributes(dateiname):
             transposition = attributes[2]
         except:
             log("[ERROR]:", f"No transposition found in {attributes[0]}")
-            instrument = None
-
-        # TODO : Stimmen möglichkeiten zu Schwer, Normal, Leicht und ohne Stimme
-        # TODO : Umbenennen in Level
-        # Stimme aus Dateinamen filtern 
+            transposition = None
+        
+        # Level aus Dateinamen filtern
         try:
-            stimme = attributes[2]
+            level = attributes[3]
         except:
-            log("[WARNING]:", f"No part found in {attributes[0]}")
-            stimme = None
+            log("[WARNING]:", f"No level found in {attributes[0]}")
+            level = None
 
-        if song is None or instrument is None:
+        if song is None or instrument is None or transposition is None:
             return None
 
-        return song, instrument, stimme
+        return song, instrument, transposition, level
 
 """
 Ueberprueft die Dateipfade aus der Database. Wenn Datei auf Pfad nicht mehr existiert
@@ -93,7 +91,7 @@ def clean_database():
     # Ueber DB Eintraege iterieren
     for note in alle_noten:
         if not os.path.exists(note.dateipfad):
-            log("[REMOVED]", f"{note.song} - {note.instrument} {note.stimme or ""}")
+            log("[REMOVED]", f"{note.song} - {note.instrument} in {note.transposition} {note.level or ""}")
             session.delete(note)
             geloescht += 1
     
@@ -138,12 +136,12 @@ def fill_database(pfad):
             if note.lower() == "playbacks":
                 continue
 
-            # Song, Instrument und Stimme aus Dateinamen auslesen
+            # Song, Instrument, Transposition und Level aus Dateinamen auslesen
             result = parse_atrributes(note)
 
             # Wenn Datei eine PDF
             if result is not None:
-                song, instrument, transposition, stimme = result
+                song, instrument, transposition, level = result
 
                 # Pfad zur Note
                 dateipfad = os.path.join(unterordnerPfad, note)
@@ -157,7 +155,7 @@ def fill_database(pfad):
                     func.lower(database.Note.song) == song.lower(),
                     func.lower(database.Note.instrument) == instrument.lower(),
                     func.lower(database.Note.transposition) == transposition.lower(),
-                    database.Note.stimme == stimme
+                    database.Note.level == level
                 ).first()
 
                 # Falls die Note noch nicht existiert neue Note erstellen
@@ -168,19 +166,19 @@ def fill_database(pfad):
                         song = song,
                         instrument = instrument,
                         transposition = transposition,
-                        stimme = stimme,
+                        level = level,
                         dateipfad = dateipfad,
                         version = version
                     )
 
-                    log("[ADDED]", f"{song} - {instrument} in {transposition} {stimme or ""}")
+                    log("[ADDED]", f"{song} - {instrument} in {transposition} {level or ""}")
                     session.add(neue_note)
                     aenderungen += 1
 
                 # Sonst version vergleichen und updaten falls neuer
                 else:
                     if version > existierende_note.version:
-                        log("[UPDATED]", f"{song} - {instrument} in {transposition} {stimme or ""}")
+                        log("[UPDATED]", f"{song} - {instrument} in {transposition} {level or ""}")
                         existierende_note.version = version
                         aenderungen += 1
 
@@ -220,7 +218,7 @@ def listen_for_commands():
             session = database.Session()
             alle_noten = session.query(database.Note).all()
             for note in alle_noten:
-                log("[REMOVED]", f"{note.song} - {note.instrument} {note.stimme or ""}")
+                log("[REMOVED]", f"{note.song} - {note.instrument} in {note.transposition} {note.level or ""}")
             session.query(database.Note).delete()
             session.commit()
             session.close()

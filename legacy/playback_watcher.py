@@ -18,10 +18,10 @@ def log(tag, message):
     print(f"[{timestamp}] {tag} {message}")
 
 """
-Parst einen Dateinamen und extrahiert Song und Geschwindigkeit.
+Parst einen Dateinamen und extrahiert Song und Typ / Geschwindigkeit.
 
 Input:  dateiname (str) - z.B. "apt_normal.mp3"
-Output: attributes = [Song, Geschwindigkeit]
+Output: attributes = [Song, Typ / Geschwindigkeit]
         Bei fehlendem Wert wird None zurueckgegeben
 """
 def parse_atrributes(dateiname):
@@ -45,18 +45,17 @@ def parse_atrributes(dateiname):
             log("[ERROR]:", "No song name found")
             song = None
 
-        # TODO : Geschwindigkeit in Typ umbenennen
-        # Geschwindigkeit aus dem Dateinamen filtern
+        # Typ / Geschwindigkeit aus dem Dateinamen filtern
         try:
-            geschwindigkeit = attributes[1]
+            typ = attributes[1]
         except:
             log("[ERROR]:", f"No speed found in {attributes[0]}")
-            geschwindigkeit = None
+            typ = None
 
-        if song is None or geschwindigkeit is None:
+        if song is None or typ is None:
             return None
 
-        return song, geschwindigkeit
+        return song, typ
 
 """
 Ueberprueft die Dateipfade aus der Database. Wenn Datei auf Pfad nicht mehr existiert
@@ -78,7 +77,7 @@ def clean_database():
     # Ueber DB Eintraege iterieren
     for playback in alle_playbacks:
         if not os.path.exists(playback.dateipfad):
-            log("[REMOVED]", f"{playback.song} - {playback.geschwindigkeit}")
+            log("[REMOVED]", f"{playback.song} - {playback.typ}")
             session.delete(playback)
             geloescht += 1
     
@@ -124,12 +123,12 @@ def fill_database(pfad):
 
                 for playback in playbacks:
             
-                    # Song und Geschwindigkeit aus Dateinamen auslesen
+                    # Song und Typ / Geschwindigkeit aus Dateinamen auslesen
                     result = parse_atrributes(playback)
 
                     # Wenn Datei eine MP3
                     if result is not None:
-                        song, geschwindigkeit = result
+                        song, typ = result
 
                         # Pfad zum Playback
                         dateipfad = os.path.join(playbacksPath, playback)
@@ -141,7 +140,7 @@ def fill_database(pfad):
                         # Ist None wenn das Playback noch nicht in der DB existiert
                         existierende_playback = session.query(database.Playback).filter(
                             func.lower(database.Playback.song) == song.lower(),
-                            func.lower(database.Playback.geschwindigkeit) == geschwindigkeit.lower(),
+                            func.lower(database.Playback.typ) == typ.lower(),
                         ).first()
 
                         # Falls das Playback noch nicht existiert neues Playback erstellen
@@ -150,19 +149,19 @@ def fill_database(pfad):
                             # Neues Objekt in der DB erstellen
                             neue_playback = database.Playback(
                                 song = song,
-                                geschwindigkeit = geschwindigkeit,
+                                typ = typ,
                                 dateipfad = dateipfad,
                                 version = version
                             )
 
-                            log("[ADDED]", f"{song} - {geschwindigkeit}")
+                            log("[ADDED]", f"{song} - {typ}")
                             session.add(neue_playback)
                             aenderungen += 1
 
                         # Sonst version vergleichen und updaten falls neuer
                         else:
                             if version > existierende_playback.version:
-                                log("[UPDATED]", f"{song} - {geschwindigkeit}")
+                                log("[UPDATED]", f"{song} - {typ}")
                                 existierende_playback.version = version
                                 aenderungen += 1
 
@@ -202,7 +201,7 @@ def listen_for_commands():
             session = database.Session()
             alle_playbacks = session.query(database.Playback).all()
             for playback in alle_playbacks:
-                log("[REMOVED]", f"{playback.song} - {playback.geschwindigkeit}")
+                log("[REMOVED]", f"{playback.song} - {playback.typ}")
             session.query(database.Playback).delete()
             session.commit()
             session.close()

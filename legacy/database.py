@@ -13,7 +13,7 @@ class Note(Base):
     song = Column(String)
     instrument = Column(String)
     transposition = Column(String)
-    stimme = Column(String, nullable=True)  # Nicht alle haben eine Stimme
+    level = Column(String, nullable=True)  # Nicht alle haben eine Stimme
     dateipfad = Column(String)
     version = Column(DateTime, default=datetime.now)
 
@@ -22,7 +22,7 @@ class Playback(Base):
     
     id = Column(Integer, primary_key=True)
     song = Column(String)
-    geschwindigkeit = Column(String)  # "normal" oder "langsam"
+    typ = Column(String)  # "normal" oder "langsam"
     dateipfad = Column(String)
     version = Column(DateTime, default=datetime.now)
 

@@ -10,7 +10,7 @@ def get_noten():
     alle_noten = session.query(database.Note).all()
     session.close
 
-    return [{"id": note.id, "song": note.song, "instrument": note.instrument, "stimme": note.stimme} for note in alle_noten]
+    return [{"id": note.id, "song": note.song, "instrument": note.instrument, "transposition": note.transposition, "stimme": note.level} for note in alle_noten]
 
 @app.get("/playbacks")
 def get_playbacks():
@@ -18,7 +18,7 @@ def get_playbacks():
     alle_playbacks = session.query(database.Playback).all()
     session.close()
 
-    return [{"id": playback.id, "song": playback.song, "geschwindigkeit": playback.geschwindigkeit} for playback in alle_playbacks]
+    return [{"id": playback.id, "song": playback.song, "typ": playback.typ} for playback in alle_playbacks]
 
 @app.get("/noten/{id}/pdf")
 def get_pdf(id : int):
