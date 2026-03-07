@@ -1,11 +1,15 @@
 import threading
 import time
 import schedule
+from datetime import datetime
 import database
 import noten_watcher
 import playback_watcher
 
 stop_event = threading.Event()
+
+noten_watcher.log = lambda tag, message: print(f"[{datetime.now().strftime('%d.%m.%Y %H:%M:%S')}] [NOTEN] {tag} {message}")
+playback_watcher.log = lambda tag, message: print(f"[{datetime.now().strftime('%d.%m.%Y %H:%M:%S')}] [PLAYBACK] {tag} {message}")
 
 HILFE = """
 Befehle:
