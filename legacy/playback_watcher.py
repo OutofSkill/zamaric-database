@@ -8,7 +8,7 @@ from sqlalchemy import func
 import threading
 
 # Pfad zum Ordner mit allen Musiknoten + Playbacks
-basispfad = r"C:\Users\phil_\Documents\musikapp\Backend\stuecke"
+basispfad = "/home/phil_ps/musikapp/Backend/stuecke"
 
 # Uhrzeit an der die DB aktualisiert wird
 aktualisierungszeit = "03:00"
