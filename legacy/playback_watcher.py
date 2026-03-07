@@ -18,10 +18,10 @@ def log(tag, message):
     print(f"[{timestamp}] {tag} {message}")
 
 """
-Parst einen Dateinamen und extrahiert Song und Typ / Geschwindigkeit.
+Parst einen Dateinamen und extrahiert Song und Typ.
 
 Input:  dateiname (str) - z.B. "apt_normal.mp3"
-Output: attributes = [Song, Typ / Geschwindigkeit]
+Output: attributes = [Song, Typ]
         Bei fehlendem Wert wird None zurueckgegeben
 """
 def parse_atrributes(dateiname):
@@ -45,7 +45,7 @@ def parse_atrributes(dateiname):
             log("[ERROR]:", "No song name found")
             song = None
 
-        # Typ / Geschwindigkeit aus dem Dateinamen filtern
+        # Typ aus dem Dateinamen filtern
         try:
             typ = attributes[1]
         except:
@@ -123,7 +123,7 @@ def fill_database(pfad):
 
                 for playback in playbacks:
             
-                    # Song und Typ / Geschwindigkeit aus Dateinamen auslesen
+                    # Song und Typ aus Dateinamen auslesen
                     result = parse_atrributes(playback)
 
                     # Wenn Datei eine MP3
