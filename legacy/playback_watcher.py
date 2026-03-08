@@ -212,8 +212,12 @@ def listen_for_commands():
             return
 
 def main():
+    def job_with_prompt():
+        job()
+        print("playback_watcher > ", end="", flush=True)
+
     # Jeden Tag um 03:00 Uhr
-    schedule.every().day.at(aktualisierungszeit).do(job)
+    schedule.every().day.at(aktualisierungszeit).do(job_with_prompt)
 
     # Terminal-Listener in separatem Thread starten
     thread = threading.Thread(target=listen_for_commands, daemon=True)

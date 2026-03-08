@@ -98,8 +98,12 @@ def listen_for_commands():
             handle_playback(cmd)
 
 def main():
-    schedule.every().day.at(noten_watcher.aktualisierungszeit).do(noten_watcher.job)
-    schedule.every().day.at(playback_watcher.aktualisierungszeit).do(playback_watcher.job)
+    def automated_cycle():
+        noten_watcher.job()
+        playback_watcher.job()
+        print("musikapp > ", end="", flush=True)
+
+    schedule.every().day.at(noten_watcher.aktualisierungszeit).do(automated_cycle)
 
     schedule_thread = threading.Thread(target=run_schedules, daemon=True)
     schedule_thread.start()
