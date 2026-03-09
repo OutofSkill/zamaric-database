@@ -35,38 +35,64 @@ def parse_atrributes(dateiname):
         notenname = notenname.replace("Ä", "Ae").replace("Ö", "Oe").replace("Ü", "Ue")
         notenname = unicodedata.normalize("NFD", notenname).encode("ascii", "ignore").decode("utf-8")
 
-        # String zwischen "_" aufteilen
-        attributes = notenname.split("_")
+        # String zwischen "-" aufteilen
+        attributes = notenname.split("-")
 
         # Name der Note aus dem Dateinamen filtern
         try:
-            song = attributes[0]
+            song = attributes[0].strip()
         except:
-            log("[ERROR]:", "No song name found")
+            log("[ERROR]:", f"No song name found in {notenname}")
             song = None
+
+        try:
+            if " in " in attributes[1]:
+                # String ohne Songnamen zwischen "in" aufteilen
+                has_transposition = True
+                attributes = attributes[1].split(" in ")
+            else:
+                transposition = None
+                has_transposition = False
+                attributes = attributes[1].split()
+        except:
+            log("[ERROR]:", f"No instrument found in {notenname}")
+            return None
 
         # Instrument aus dem Dateinamen filtern
         try:
-            instrument = attributes[1]
+            instrument = attributes[0].strip()
         except:
-            log("[ERROR]:", f"No instrument found in {attributes[0]}")
+            log("[ERROR]:", f"No instrument found in {notenname}")
             instrument = None
 
-        # Transposition aus dem Dateinamen filtern
         try:
-            transposition = attributes[2]
+            # String ohne Instrument zwischen Leerzeichen aufteilen
+            attributes = attributes[1].split()
         except:
-            log("[ERROR]:", f"No transposition found in {attributes[0]}")
-            transposition = None
+            log("[WARNING]:", f"No transposition found in {notenname}")
+            log("[WARNING]:", f"No level found in {notenname}")
+
+        if has_transposition == True:
+            # Transposition aus dem Dateinamen filtern
+            try:
+                transposition = attributes[0].strip()
+            except:
+                log("[WARNING]:", f"No transposition found in {notenname}")
+                transposition = None
         
         # Level aus Dateinamen filtern
         try:
-            level = attributes[3]
+            if has_transposition == True:
+                level = attributes[1].strip()
+            elif instrument != attributes[0]:
+                level = attributes[0].strip()
+            else:
+                level = None
         except:
-            log("[WARNING]:", f"No level found in {attributes[0]}")
+            log("[WARNING]:", f"No level found in {notenname}")
             level = None
 
-        if song is None or instrument is None or transposition is None:
+        if song is None or instrument is None:
             return None
 
         return song, instrument, transposition, level
@@ -154,7 +180,7 @@ def fill_database(pfad):
                 existierende_note = session.query(database.Note).filter(
                     func.lower(database.Note.song) == song.lower(),
                     func.lower(database.Note.instrument) == instrument.lower(),
-                    func.lower(database.Note.transposition) == transposition.lower(),
+                    func.lower(database.Note.transposition) == (transposition.lower() if transposition else None),
                     database.Note.level == level
                 ).first()
 

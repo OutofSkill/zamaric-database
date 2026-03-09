@@ -9,22 +9,22 @@ Base = declarative_base()
 class Note(Base):
     __tablename__ = "noten"
     
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key = True)
     song = Column(String)
     instrument = Column(String)
-    transposition = Column(String)
-    level = Column(String, nullable=True)  # Nicht alle haben eine Stimme
+    transposition = Column(String, nullable = True)
+    level = Column(String, nullable = True)  # Nicht alle haben eine Stimme
     dateipfad = Column(String)
-    version = Column(DateTime, default=datetime.now)
+    version = Column(DateTime, default = datetime.now)
 
 class Playback(Base):
     __tablename__ = "playbacks"
     
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key = True)
     song = Column(String)
     typ = Column(String)  # "normal" oder "langsam"
     dateipfad = Column(String)
-    version = Column(DateTime, default=datetime.now)
+    version = Column(DateTime, default = datetime.now)
 
 # Datenbank erstellen
 basispfad = os.path.dirname(os.path.abspath(__file__))
