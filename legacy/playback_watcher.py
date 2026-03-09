@@ -35,8 +35,8 @@ def parse_atrributes(dateiname):
         playbackname = playbackname.replace("Ä", "Ae").replace("Ö", "Oe").replace("Ü", "Ue")
         playbackname = unicodedata.normalize("NFD", playbackname).encode("ascii", "ignore").decode("utf-8")
 
-        # String zwischen "_" aufteilen
-        attributes = playbackname.split("_")
+        # String zwischen "-" aufteilen
+        attributes = playbackname.split("-")
 
         # Name des Playbacks aus dem Dateinamen filtern
         try:
