@@ -93,77 +93,77 @@ Input:  pfad (str) - Uebergeordneter Pfad der Songs
 Output: Anzahl der Aenderungen (int)
 """
 def fill_database(pfad):
-    # Liste mit allen Directories im Ordner
-    dateien = os.listdir(pfad)
-
-    # DB Session oeffnen 
+    # DB Session oeffnen
     session = database.Session()
 
     # Zaehler fuer Aenderungen
     aenderungen = 0
 
-    # Ueber Unterordner iterieren
-    for ordner in dateien:
-
-        # Unterordner oeffnen + Liste mit Dateien im Unterordner erstellen
-        unterordnerPfad = os.path.join(basispfad, ordner)
-        if not os.path.isdir(unterordnerPfad):
+    # Ueber Kategorie-Ordner iterieren
+    for kategorie_ordner in os.listdir(pfad):
+        kategorie_pfad = os.path.join(pfad, kategorie_ordner)
+        if not os.path.isdir(kategorie_pfad):
             continue
-        dateienUnterodner = os.listdir(unterordnerPfad)
 
-        # Ueber Dateien im Unterordner iterieren
-        for note in dateienUnterodner:
-            
-            # Wir suchen den Playbacks Ordner
-            if note.lower() == "playbacks":
+        # Kategorie-Nummer aus Ordnernamen extrahieren (z.B. "2 Absolute Beginners..." -> "2")
+        kategorie = kategorie_ordner.split()[0]
 
-                # Playbacks-Ordner oeffnen + Liste mit Dateien erstellen
-                playbacksPath = os.path.join(unterordnerPfad, note)
-                playbacks = os.listdir(playbacksPath)
+        # Playbacks-Unterordner suchen
+        playbacks_pfad = os.path.join(kategorie_pfad, "Playbacks")
+        if not os.path.isdir(playbacks_pfad):
+            continue
 
-                for playback in playbacks:
-            
-                    # Song und Typ aus Dateinamen auslesen
-                    result = parse_atrributes(playback)
+        # Ueber Song-Ordner iterieren
+        for song_ordner in os.listdir(playbacks_pfad):
+            song_ordner_pfad = os.path.join(playbacks_pfad, song_ordner)
+            if not os.path.isdir(song_ordner_pfad):
+                continue
 
-                    # Wenn Datei eine MP3
-                    if result is not None:
-                        song, typ = result
+            # Ueber Dateien im Song-Ordner iterieren
+            for playback in os.listdir(song_ordner_pfad):
 
-                        # Pfad zum Playback
-                        dateipfad = os.path.join(playbacksPath, playback)
+                # Song und Typ aus Dateinamen auslesen
+                result = parse_atrributes(playback)
 
-                        # Letztes Aenderungsdatum ermitteln
-                        timestamp = os.path.getmtime(dateipfad)
-                        version = datetime.fromtimestamp(timestamp)
+                # Wenn Datei eine MP3
+                if result is not None:
+                    song, typ = result
 
-                        # Ist None wenn das Playback noch nicht in der DB existiert
-                        existierende_playback = session.query(database.Playback).filter(
-                            func.lower(database.Playback.song) == song.lower(),
-                            func.lower(database.Playback.typ) == typ.lower(),
-                        ).first()
+                    # Pfad zum Playback
+                    dateipfad = os.path.join(song_ordner_pfad, playback)
 
-                        # Falls das Playback noch nicht existiert neues Playback erstellen
-                        if existierende_playback is None:
+                    # Letztes Aenderungsdatum ermitteln
+                    timestamp = os.path.getmtime(dateipfad)
+                    version = datetime.fromtimestamp(timestamp)
 
-                            # Neues Objekt in der DB erstellen
-                            neue_playback = database.Playback(
-                                song = song,
-                                typ = typ,
-                                dateipfad = dateipfad,
-                                version = version
-                            )
+                    # Ist None wenn das Playback noch nicht in der DB existiert
+                    existierende_playback = session.query(database.Playback).filter(
+                        func.lower(database.Playback.song) == song.lower(),
+                        func.lower(database.Playback.typ) == typ.lower(),
+                    ).first()
 
-                            log("[ADDED]", f"{song} - {typ}")
-                            session.add(neue_playback)
+                    # Falls das Playback noch nicht existiert neues Playback erstellen
+                    if existierende_playback is None:
+
+                        # Neues Objekt in der DB erstellen
+                        neue_playback = database.Playback(
+                            kategorie = kategorie,
+                            song = song,
+                            typ = typ,
+                            dateipfad = dateipfad,
+                            version = version
+                        )
+
+                        log("[ADDED]", f"{song} - {typ}")
+                        session.add(neue_playback)
+                        aenderungen += 1
+
+                    # Sonst version vergleichen und updaten falls neuer
+                    else:
+                        if version > existierende_playback.version:
+                            log("[UPDATED]", f"{song} - {typ}")
+                            existierende_playback.version = version
                             aenderungen += 1
-
-                        # Sonst version vergleichen und updaten falls neuer
-                        else:
-                            if version > existierende_playback.version:
-                                log("[UPDATED]", f"{song} - {typ}")
-                                existierende_playback.version = version
-                                aenderungen += 1
 
     # Alle neuen Objekte in der DB speichern
     session.commit()

@@ -8,21 +8,23 @@ Base = declarative_base()
 
 class Note(Base):
     __tablename__ = "noten"
-    
+
     id = Column(Integer, primary_key = True)
+    kategorie = Column(String)
     song = Column(String)
     instrument = Column(String)
     transposition = Column(String, nullable = True)
-    level = Column(String, nullable = True)  # Nicht alle haben eine Stimme
+    level = Column(String, nullable = True)
     dateipfad = Column(String)
     version = Column(DateTime, default = datetime.now)
 
 class Playback(Base):
     __tablename__ = "playbacks"
-    
+
     id = Column(Integer, primary_key = True)
+    kategorie = Column(String)
     song = Column(String)
-    typ = Column(String)  # "normal" oder "langsam"
+    typ = Column(String)
     dateipfad = Column(String)
     version = Column(DateTime, default = datetime.now)
 

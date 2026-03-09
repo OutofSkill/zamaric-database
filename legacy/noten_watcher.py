@@ -133,80 +133,81 @@ Input:  pfad (str) - Uebergeordneter Pfad der Songs
 Output: Anzahl der Aenderungen (int)
 """
 def fill_database(pfad):
-    # Liste mit allen Directories im Ordner
-    dateien = os.listdir(pfad)
-
-    # DB Session oeffnen 
+    # DB Session oeffnen
     session = database.Session()
 
     # Zaehler fuer Aenderungen
     aenderungen = 0
 
-    # Ueber Unterordner iterieren
-    for ordner in dateien:
-        
-        # Playbacks Ordner ueberspringen
-        if ordner.lower() == "playbacks":
+    # Ueber Kategorie-Ordner iterieren
+    for kategorie_ordner in os.listdir(pfad):
+        kategorie_pfad = os.path.join(pfad, kategorie_ordner)
+        if not os.path.isdir(kategorie_pfad):
             continue
 
-        # Unterordner oeffnen + Liste mit Dateien im Unterordner erstellen
-        unterordnerPfad = os.path.join(basispfad, ordner)
-        if not os.path.isdir(unterordnerPfad):
+        # Kategorie-Nummer aus Ordnernamen extrahieren (z.B. "2 Absolute Beginners..." -> "2")
+        kategorie = kategorie_ordner.split()[0]
+
+        # Noten-Unterordner suchen
+        noten_pfad = os.path.join(kategorie_pfad, "Noten")
+        if not os.path.isdir(noten_pfad):
             continue
-        dateienUnterodner = os.listdir(unterordnerPfad)
 
-        # Ueber Dateien im Unterordner iterieren
-        for note in dateienUnterodner:
-
-            # Playbacks Ordner ueberspringen
-            if note.lower() == "playbacks":
+        # Ueber Song-Ordner iterieren
+        for song_ordner in os.listdir(noten_pfad):
+            song_ordner_pfad = os.path.join(noten_pfad, song_ordner)
+            if not os.path.isdir(song_ordner_pfad):
                 continue
 
-            # Song, Instrument, Transposition und Level aus Dateinamen auslesen
-            result = parse_atrributes(note)
+            # Ueber Dateien im Song-Ordner iterieren
+            for note in os.listdir(song_ordner_pfad):
 
-            # Wenn Datei eine PDF
-            if result is not None:
-                song, instrument, transposition, level = result
+                # Song, Instrument, Transposition und Level aus Dateinamen auslesen
+                result = parse_atrributes(note)
 
-                # Pfad zur Note
-                dateipfad = os.path.join(unterordnerPfad, note)
+                # Wenn Datei eine PDF
+                if result is not None:
+                    song, instrument, transposition, level = result
 
-                # Letztes Aenderungsdatum ermitteln
-                timestamp = os.path.getmtime(dateipfad)
-                version = datetime.fromtimestamp(timestamp)
+                    # Pfad zur Note
+                    dateipfad = os.path.join(song_ordner_pfad, note)
 
-                # Ist None wenn die Note noch nicht in der DB existiert
-                existierende_note = session.query(database.Note).filter(
-                    func.lower(database.Note.song) == song.lower(),
-                    func.lower(database.Note.instrument) == instrument.lower(),
-                    func.lower(database.Note.transposition) == (transposition.lower() if transposition else None),
-                    database.Note.level == level
-                ).first()
+                    # Letztes Aenderungsdatum ermitteln
+                    timestamp = os.path.getmtime(dateipfad)
+                    version = datetime.fromtimestamp(timestamp)
 
-                # Falls die Note noch nicht existiert neue Note erstellen
-                if existierende_note is None:
+                    # Ist None wenn die Note noch nicht in der DB existiert
+                    existierende_note = session.query(database.Note).filter(
+                        func.lower(database.Note.song) == song.lower(),
+                        func.lower(database.Note.instrument) == instrument.lower(),
+                        func.lower(database.Note.transposition) == (transposition.lower() if transposition else None),
+                        database.Note.level == level
+                    ).first()
 
-                    # Neues Objekt in der DB erstellen
-                    neue_note = database.Note(
-                        song = song,
-                        instrument = instrument,
-                        transposition = transposition,
-                        level = level,
-                        dateipfad = dateipfad,
-                        version = version
-                    )
+                    # Falls die Note noch nicht existiert neue Note erstellen
+                    if existierende_note is None:
 
-                    log("[ADDED]", f"{song} - {instrument} in {transposition} {level or ""}")
-                    session.add(neue_note)
-                    aenderungen += 1
+                        # Neues Objekt in der DB erstellen
+                        neue_note = database.Note(
+                            kategorie = kategorie,
+                            song = song,
+                            instrument = instrument,
+                            transposition = transposition,
+                            level = level,
+                            dateipfad = dateipfad,
+                            version = version
+                        )
 
-                # Sonst version vergleichen und updaten falls neuer
-                else:
-                    if version > existierende_note.version:
-                        log("[UPDATED]", f"{song} - {instrument} in {transposition} {level or ""}")
-                        existierende_note.version = version
+                        log("[ADDED]", f"{song} - {instrument} in {transposition} {level or ""}")
+                        session.add(neue_note)
                         aenderungen += 1
+
+                    # Sonst version vergleichen und updaten falls neuer
+                    else:
+                        if version > existierende_note.version:
+                            log("[UPDATED]", f"{song} - {instrument} in {transposition} {level or ""}")
+                            existierende_note.version = version
+                            aenderungen += 1
 
     # Alle neuen Objekte in der DB speichern
     session.commit()
