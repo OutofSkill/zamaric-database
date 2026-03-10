@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 import database
+import json
 
 app = FastAPI()
 
@@ -18,7 +19,7 @@ def get_playbacks():
     alle_playbacks = session.query(database.Playback).all()
     session.close()
 
-    return [{"id": playback.id, "song": playback.song, "typ": playback.typ} for playback in alle_playbacks]
+    return [{"id": playback.id, "song": playback.song, "typ": playback.typ, "buchstaben": json.loads(playback.buchstaben) if playback.buchstaben else None} for playback in alle_playbacks]
 
 @app.get("/noten/{id}/pdf")
 def get_pdf(id : int):

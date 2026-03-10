@@ -25,6 +25,7 @@ class Playback(Base):
     kategorie = Column(String)
     song = Column(String)
     typ = Column(String)
+    buchstaben = Column(String, nullable = True)
     dateipfad = Column(String)
     version = Column(DateTime, default = datetime.now)
 

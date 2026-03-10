@@ -6,6 +6,7 @@ import schedule
 import unicodedata
 from sqlalchemy import func
 import threading
+import json
 
 # Pfad zum Ordner mit allen Musiknoten + Playbacks
 basispfad = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stuecke")
@@ -136,6 +137,26 @@ def fill_database(pfad):
                     timestamp = os.path.getmtime(dateipfad)
                     version = datetime.fromtimestamp(timestamp)
 
+                    # TXT-Datei mit Buchstaben einlesen (gleicher Name, andere Endung)
+                    txt_pfad = dateipfad.removesuffix(".mp3") + ".txt"
+                    buchstaben_json = None
+                    if os.path.exists(txt_pfad):
+                        buchstaben = []
+                        with open(txt_pfad, "r", encoding="utf-8") as f:
+                            for zeile in f:
+                                zeile = zeile.strip()
+                                if not zeile:
+                                    continue
+                                teile = zeile.split()
+                                if len(teile) >= 3:
+                                    buchstaben.append({
+                                        "buchstabe": teile[0],
+                                        "timestamp": teile[1],
+                                        "taktart": teile[2]
+                                    })
+                        if buchstaben:
+                            buchstaben_json = json.dumps(buchstaben)
+
                     # Ist None wenn das Playback noch nicht in der DB existiert
                     existierende_playback = session.query(database.Playback).filter(
                         func.lower(database.Playback.song) == song.lower(),
@@ -150,6 +171,7 @@ def fill_database(pfad):
                             kategorie = kategorie,
                             song = song,
                             typ = typ,
+                            buchstaben = buchstaben_json,
                             dateipfad = dateipfad,
                             version = version
                         )
@@ -160,9 +182,10 @@ def fill_database(pfad):
 
                     # Sonst version vergleichen und updaten falls neuer
                     else:
-                        if version > existierende_playback.version:
+                        if version > existierende_playback.version or existierende_playback.buchstaben != buchstaben_json:
                             log("[UPDATED]", f"{song} - {typ}")
                             existierende_playback.version = version
+                            existierende_playback.buchstaben = buchstaben_json
                             aenderungen += 1
 
     # Alle neuen Objekte in der DB speichern
