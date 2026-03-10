@@ -139,7 +139,7 @@ def fill_database(pfad):
                     # Ist None wenn das Playback noch nicht in der DB existiert
                     existierende_playback = session.query(database.Playback).filter(
                         func.lower(database.Playback.song) == song.lower(),
-                        func.lower(database.Playback.typ) == typ.lower(),
+                        func.lower(database.Playback.typ) == (typ.lower() if typ else None),
                     ).first()
 
                     # Falls das Playback noch nicht existiert neues Playback erstellen
