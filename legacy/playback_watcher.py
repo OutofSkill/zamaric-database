@@ -49,10 +49,10 @@ def parse_atrributes(dateiname):
         try:
             typ = attributes[1]
         except:
-            log("[ERROR]:", f"No speed found in {attributes[0]}")
+            log("[WARNING]:", f"No speed found in {attributes[0]}")
             typ = None
 
-        if song is None or typ is None:
+        if song is None:
             return None
 
         return song, typ
