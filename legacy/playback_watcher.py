@@ -123,12 +123,12 @@ def fill_database(pfad):
             # Einzaehler-Unterordner scannen
             einzaehler_pfad = os.path.join(song_ordner_pfad, "Einzaehler")
             if os.path.isdir(einzaehler_pfad):
-                for einzaehler_datei in os.listdir(einzaehler_pfad):
-                    if not einzaehler_datei.endswith(".mp3"):
+                for einzaehler in os.listdir(einzaehler_pfad):
+                    if not einzaehler.endswith(".mp3"):
                         continue
 
                     # Keyword = Dateiname ohne Songname-Prefix und ohne .mp3
-                    dateiname_ohne_endung = einzaehler_datei.removesuffix(".mp3")
+                    dateiname_ohne_endung = einzaehler.removesuffix(".mp3")
                     song_prefix = song_ordner + " "
                     if dateiname_ohne_endung.startswith(song_prefix):
                         keyword = dateiname_ohne_endung[len(song_prefix):]
@@ -136,7 +136,7 @@ def fill_database(pfad):
                         keyword = dateiname_ohne_endung
 
                     keyword = keyword.strip()
-                    einzaehler_dateipfad = os.path.join(einzaehler_pfad, einzaehler_datei)
+                    einzaehler_dateipfad = os.path.join(einzaehler_pfad, einzaehler)
                     timestamp = os.path.getmtime(einzaehler_dateipfad)
                     version = datetime.fromtimestamp(timestamp)
                     typ = f"Einzaehler {keyword}"
@@ -166,6 +166,9 @@ def fill_database(pfad):
 
             # Ueber Dateien im Song-Ordner iterieren
             for playback in os.listdir(song_ordner_pfad):
+
+                if not playback.endswith(".mp3"):
+                    continue
 
                 # Song und Typ aus Dateinamen auslesen
                 result = parse_atrributes(playback)
