@@ -120,6 +120,50 @@ def fill_database(pfad):
             if not os.path.isdir(song_ordner_pfad):
                 continue
 
+            # Einzaehler-Unterordner scannen
+            einzaehler_pfad = os.path.join(song_ordner_pfad, "Einzaehler")
+            if os.path.isdir(einzaehler_pfad):
+                for einzaehler_datei in os.listdir(einzaehler_pfad):
+                    if not einzaehler_datei.endswith(".mp3"):
+                        continue
+
+                    # Keyword = Dateiname ohne Songname-Prefix und ohne .mp3
+                    dateiname_ohne_endung = einzaehler_datei.removesuffix(".mp3")
+                    song_prefix = song_ordner + " "
+                    if dateiname_ohne_endung.startswith(song_prefix):
+                        keyword = dateiname_ohne_endung[len(song_prefix):]
+                    else:
+                        keyword = dateiname_ohne_endung
+
+                    keyword = keyword.strip()
+                    einzaehler_dateipfad = os.path.join(einzaehler_pfad, einzaehler_datei)
+                    timestamp = os.path.getmtime(einzaehler_dateipfad)
+                    version = datetime.fromtimestamp(timestamp)
+                    typ = f"Einzaehler {keyword}"
+
+                    existierender_einzaehler = session.query(database.Playback).filter(
+                        func.lower(database.Playback.song) == song_ordner.lower(),
+                        func.lower(database.Playback.typ) == typ.lower(),
+                    ).first()
+
+                    if existierender_einzaehler is None:
+                        neuer_einzaehler = database.Playback(
+                            kategorie = kategorie,
+                            song = song_ordner,
+                            typ = typ,
+                            buchstaben = None,
+                            dateipfad = einzaehler_dateipfad,
+                            version = version
+                        )
+                        log("[ADDED]", f"{song_ordner} - {typ}")
+                        session.add(neuer_einzaehler)
+                        aenderungen += 1
+                    else:
+                        if version > existierender_einzaehler.version:
+                            log("[UPDATED]", f"{song_ordner} - {typ}")
+                            existierender_einzaehler.version = version
+                            aenderungen += 1
+
             # Ueber Dateien im Song-Ordner iterieren
             for playback in os.listdir(song_ordner_pfad):
 
