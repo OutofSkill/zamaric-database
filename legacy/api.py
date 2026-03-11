@@ -11,7 +11,7 @@ def get_noten():
     alle_noten = session.query(database.Note).all()
     session.close
 
-    return [{"id": note.id, "song": note.song, "instrument": note.instrument, "transposition": note.transposition, "stimme": note.level} for note in alle_noten]
+    return [{"id": note.id, "song": note.song, "instrument": note.instrument, "transposition": note.transposition, "level": note.level} for note in alle_noten]
 
 @app.get("/playbacks")
 def get_playbacks():
