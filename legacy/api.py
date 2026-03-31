@@ -9,9 +9,9 @@ app = FastAPI()
 def get_noten():
     session = database.Session()
     alle_noten = session.query(database.Note).all()
-    session.close
+    session.close();
 
-    return [{"id": note.id, "song": note.song, "instrument": note.instrument, "transposition": note.transposition, "level": note.level} for note in alle_noten]
+    return [{"id": note.id, "kategorie": note.kategorie, "song": note.song, "instrument": note.instrument, "transposition": note.transposition, "level": note.level, "version": str(note.version)} for note in alle_noten]
 
 @app.get("/playbacks")
 def get_playbacks():
@@ -19,7 +19,7 @@ def get_playbacks():
     alle_playbacks = session.query(database.Playback).all()
     session.close()
 
-    return [{"id": playback.id, "song": playback.song, "typ": playback.typ, "buchstaben": json.loads(playback.buchstaben) if playback.buchstaben else None} for playback in alle_playbacks]
+    return [{"id": playback.id, "kategorie": playback.kategorie, "song": playback.song, "typ": playback.typ, "buchstaben": json.loads(playback.buchstaben) if playback.buchstaben else None, "version": str(playback.version)} for playback in alle_playbacks]
 
 @app.get("/noten/{id}/pdf")
 def get_pdf(id : int):
