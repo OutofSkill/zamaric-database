@@ -63,7 +63,7 @@ def handle_playback(cmd):
         alle_playbacks = session.query(database.Playback).all()
         for playback in alle_playbacks:
             playback_watcher.log("[REMOVED]", f"{playback.song} - {playback.typ}")
-        session.query(database.Playback).delete()
+        session.query(database.Playback).delete(synchronize_session=False)
         session.commit()
         session.close()
         playback_watcher.log("[DONE]", "Database cleared")

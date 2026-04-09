@@ -272,7 +272,7 @@ def listen_for_commands():
             alle_playbacks = session.query(database.Playback).all()
             for playback in alle_playbacks:
                 log("[REMOVED]", f"{playback.song} - {playback.typ}")
-            session.query(database.Playback).delete()
+            session.query(database.Playback).delete(synchronize_session=False)
             session.commit()
             session.close()
             log("[DONE]", "Database cleared")
