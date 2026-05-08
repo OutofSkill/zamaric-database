@@ -1,3 +1,4 @@
+import sys
 import threading
 import time
 import schedule
@@ -108,7 +109,10 @@ def main():
     schedule_thread = threading.Thread(target=run_schedules, daemon=True)
     schedule_thread.start()
 
-    listen_for_commands()
+    if sys.stdin.isatty():
+        listen_for_commands()
+    else:
+        stop_event.wait()
 
 if __name__ == "__main__":
     main()
