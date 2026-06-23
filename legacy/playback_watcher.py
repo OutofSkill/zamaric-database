@@ -7,6 +7,7 @@ import unicodedata
 from sqlalchemy import func
 import threading
 import json
+from mutagen.mp3 import MP3
 
 # Pfad zum Ordner mit allen Musiknoten + Playbacks
 basispfad = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stuecke")
@@ -57,6 +58,14 @@ def parse_atrributes(dateiname):
             return None
 
         return song, typ
+
+def ermittle_duration(dateipfad):
+    try:
+        audio = MP3(dateipfad)
+        return int(round(audio.info.length * 1000))
+    except Exception:
+        log("[WARNING]:", f"Duration konnte nicht ermittelt werden fuer {dateipfad}")
+        return None
 
 """
 Ueberprueft die Dateipfade aus der Database. Wenn Datei auf Pfad nicht mehr existiert
@@ -140,6 +149,7 @@ def fill_database(pfad):
                     timestamp = os.path.getmtime(einzaehler_dateipfad)
                     version = datetime.fromtimestamp(timestamp)
                     typ = f"Einzaehler {keyword}"
+                    duration = ermittle_duration(einzaehler_dateipfad)
 
                     existierender_einzaehler = session.query(database.Playback).filter(
                         func.lower(database.Playback.song) == song_ordner.lower(),
@@ -152,6 +162,7 @@ def fill_database(pfad):
                             song = song_ordner,
                             typ = typ,
                             buchstaben = None,
+                            duration = duration,
                             dateipfad = einzaehler_dateipfad,
                             version = version
                         )
@@ -159,9 +170,10 @@ def fill_database(pfad):
                         session.add(neuer_einzaehler)
                         aenderungen += 1
                     else:
-                        if version > existierender_einzaehler.version:
+                        if version > existierender_einzaehler.version or existierender_einzaehler.duration != duration:
                             log("[UPDATED]", f"{song_ordner} - {typ}")
                             existierender_einzaehler.version = version
+                            existierender_einzaehler.duration = duration
                             aenderungen += 1
 
             # Ueber Dateien im Song-Ordner iterieren
@@ -183,6 +195,8 @@ def fill_database(pfad):
                     # Letztes Aenderungsdatum ermitteln
                     timestamp = os.path.getmtime(dateipfad)
                     version = datetime.fromtimestamp(timestamp)
+
+                    duration = ermittle_duration(dateipfad)
 
                     # TXT-Datei mit Buchstaben einlesen (gleicher Name, andere Endung)
                     txt_pfad = dateipfad.removesuffix(".mp3") + ".txt"
@@ -219,6 +233,7 @@ def fill_database(pfad):
                             song = song,
                             typ = typ,
                             buchstaben = buchstaben_json,
+                            duration = duration,
                             dateipfad = dateipfad,
                             version = version
                         )
@@ -229,10 +244,11 @@ def fill_database(pfad):
 
                     # Sonst version vergleichen und updaten falls neuer
                     else:
-                        if version > existierende_playback.version or existierende_playback.buchstaben != buchstaben_json:
+                        if version > existierende_playback.version or existierende_playback.buchstaben != buchstaben_json or existierende_playback.duration != duration:
                             log("[UPDATED]", f"{song} - {typ}")
                             existierende_playback.version = version
                             existierende_playback.buchstaben = buchstaben_json
+                            existierende_playback.duration = duration
                             aenderungen += 1
 
     # Alle neuen Objekte in der DB speichern

@@ -19,7 +19,7 @@ def get_playbacks():
     alle_playbacks = session.query(database.Playback).all()
     session.close()
 
-    return [{"id": playback.id, "kategorie": playback.kategorie, "song": playback.song, "typ": playback.typ, "buchstaben": json.loads(playback.buchstaben) if playback.buchstaben else None, "version": str(playback.version)} for playback in alle_playbacks]
+    return [{"id": playback.id, "kategorie": playback.kategorie, "song": playback.song, "typ": playback.typ, "buchstaben": json.loads(playback.buchstaben) if playback.buchstaben else None, "duration": playback.duration, "version": str(playback.version)} for playback in alle_playbacks]
 
 @app.get("/noten/{id}/pdf")
 def get_pdf(id : int):
