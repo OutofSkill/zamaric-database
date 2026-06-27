@@ -72,7 +72,7 @@ def handle_playback(cmd):
 def listen_for_commands():
     print(HILFE)
     while True:
-        command = input("musikapp > ").strip()
+        command = input("zamaric > ").strip()
         if not command:
             continue
 
@@ -102,7 +102,7 @@ def main():
     def automated_cycle():
         noten_watcher.job()
         playback_watcher.job()
-        print("musikapp > ", end="", flush=True)
+        print("zamaric > ", end="", flush=True)
 
     schedule.every().day.at(noten_watcher.aktualisierungszeit).do(automated_cycle)
 
