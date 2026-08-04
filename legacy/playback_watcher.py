@@ -42,14 +42,14 @@ def parse_atrributes(dateiname):
 
         # Name des Playbacks aus dem Dateinamen filtern
         try:
-            song = attributes[0]
+            song = attributes[0].strip()
         except:
             log("[ERROR]:", "No song name found")
             song = None
 
         # Typ aus dem Dateinamen filtern
         try:
-            typ = attributes[1]
+            typ = attributes[1].strip()
         except:
             log("[WARNING]:", f"No type found in {attributes[0]}")
             typ = None
