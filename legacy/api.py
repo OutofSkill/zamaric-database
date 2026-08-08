@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 import database
 import json
+import os
 
 app = FastAPI()
 
@@ -27,6 +28,9 @@ def get_pdf(id : int):
     note = session.query(database.Note).filter(database.Note.id == id).first()
     session.close()
 
+    if note is None or not note.dateipfad or not os.path.isfile(note.dateipfad):
+        raise HTTPException(status_code=404)
+
     return FileResponse(note.dateipfad)
 
 @app.get("/playbacks/{id}/audio")
@@ -34,5 +38,8 @@ def get_mp3(id : int):
     session = database.Session()
     playback = session.query(database.Playback).filter(database.Playback.id == id).first()
     session.close()
+
+    if playback is None or not playback.dateipfad or not os.path.isfile(playback.dateipfad):
+        raise HTTPException(status_code=404)
 
     return FileResponse(playback.dateipfad)
