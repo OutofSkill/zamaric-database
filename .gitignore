@@ -1,0 +1,7 @@
+.vscode/
+.DS_Store
+**/.DS_Store
+__pycache__/
+venv/
+legacy/stuecke/
+database.db
